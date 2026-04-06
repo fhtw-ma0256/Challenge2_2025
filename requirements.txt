@@ -1,8 +1,13 @@
-# install pytorch first like
-# pip install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+# Hint: install pytorch first if running in dependency issues
+# PyTorch with CUDA 13.0 support (includes torchvision)
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch==2.10.0
+torchvision==0.25.0
+torchaudio==2.10.0
+
 numpy>=1.25.0
-librosa>=0.10.0
-scikit-learn==1.6.1
-pandas>=2.1
+librosa>=0.11.0
+scikit-learn>=1.6.1
+pandas>=2.1.0
 tqdm>=4.65.0
 requests>=2.31.0

@@ -31,6 +31,7 @@ time_reduce=1)"
 val_size = .2  # could be changed
 device_id = 0
 batch_size = 32
+prefetch_factor = None#8
 # in Colab to avoid Warning
 num_workers = 2
 num_workers = 0

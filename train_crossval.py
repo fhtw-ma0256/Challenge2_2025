@@ -176,6 +176,7 @@ if __name__ == "__main__":
                                                        drop_last=False,
                                                        persistent_workers=config.persistent_workers,
                                                        pin_memory=True,
+						       prefetch_factor=config.prefetch_factor,
                                                        )
 
             val_loader = torch.utils.data.DataLoader(get_fold_dataset(subset="val"),
@@ -184,6 +185,7 @@ if __name__ == "__main__":
                                                      num_workers=config.num_workers,
                                                      drop_last=False,
                                                      persistent_workers=config.persistent_workers,
+						     prefetch_factor=config.prefetch_factor,
                                                      )
 
             print()

@@ -23,20 +23,19 @@ The network used for this sound classification task is a **Multilayer Perceptron
 
 ## Installation
 
-It is recommended to create a new environment:
+It is recommended to create a new environment. E.g., conda instructions:
 
 ```bash
-conda create -n challenge2 python=3.10
+conda create -n challenge2 python=3.12
 conda activate challenge2
 ```
 
-Clone the repository and install the necessary dependencies:
+Install the environment packages and clone the repository. If you get dependency errors, try installing pytorch first:
 
 ```bash
-git clone https://github.com/yourusername/Challenge2_2025.git
-cd Challenge2_2025
-pip install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
 pip install -r requirements.txt
+git clone REPO_URL
+cd REPO_NAME
 ```
 
 # Usage
