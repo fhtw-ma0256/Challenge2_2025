@@ -5,6 +5,8 @@ runs_path = 'results'
 # sub-epoch (batch-level) progress bar display
 disable_bat_pbar = False
 #disable_bat_pbar = True
+# digits for logging
+float_fmt = ".3f"
 
 # do not change this block
 n_classes = 50
@@ -36,11 +38,10 @@ prefetch_factor = None#8
 num_workers = 2
 num_workers = 0
 # for local Windows or Linux machine
-num_workers = 6#16
+#num_workers = 6#16
 persistent_workers = True
-#persistent_workers = False
+persistent_workers = False
 epochs = 200
-#epochs = 1
 # early stopping after epochs with no improvement
 patience = 20
 lr = 1e-3
@@ -52,6 +53,3 @@ step_size = 5
 # ### TESTING
 # model checkpoints loaded for testing
 test_checkpoints = ['terminal.pt']  # ['terminal.pt', 'best_val_loss.pt']
-# experiment folder used for testing (result from cross validation training)
-#test_experiment = 'results/2025-04-07-00-00'
-test_experiment = 'results/sample-run'

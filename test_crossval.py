@@ -6,34 +6,28 @@ import numpy as np
 import os
 import argparse
 
-from dataset.dataset_ESC50 import ESC50, download_extract_zip
-from train_crossval import test, make_model, global_stats
+from dataset.dataset_ESC50 import ESC50, download_extract_zip, get_global_stats
+from train import test, make_model
 import config
 
 
 if __name__ == "__main__":
     # optional: the test cross validation path can be specified from command line
     parser = argparse.ArgumentParser()
-    parser.add_argument('cvpath', nargs='?', default=config.test_experiment)
+    parser.add_argument('cv_path', nargs='?', default='results/sample-run')
     args = parser.parse_args()
 
-    reproducible = False
     data_path = config.esc50_path
     use_cuda = torch.cuda.is_available()
     device = torch.device(f"cuda:{config.device_id}" if use_cuda else "cpu")
 
+    # Load normalization stats (auto-switches between hardcoded and computed)
+    global_stats = get_global_stats(data_path)
+    # debugging only
     check_data_reproducibility = False
-    if reproducible:
-        # improve reproducibility
-        torch.use_deterministic_algorithms(True)
-        torch.manual_seed(0)
-        # for debugging only, uncomment
-        #check_data_reproducibility = True
 
-    # digits for logging
-    float_fmt = ".3f"
-    pd.options.display.float_format = ('{:,' + float_fmt + '}').format
-    experiment_root = args.cvpath
+    pd.options.display.float_format = ('{:,' + config.float_fmt + '}').format
+    experiment_root = args.cv_path
     if not os.path.isdir(experiment_root):
         print('download model params')
         download_extract_zip(
@@ -42,10 +36,8 @@ if __name__ == "__main__":
             file_path=experiment_root + '.zip',
         )
 
-
     # instantiate model
     print('*****')
-    print("WARNING: Using hardcoded global mean and std. Depends on feature settings!")
     model = make_model()
     model = model.to(device)
     print('*****')
@@ -56,6 +48,7 @@ if __name__ == "__main__":
     scores = {}
     probs = {model_file_name: {} for model_file_name in config.test_checkpoints}
     for test_fold in config.test_folds:
+        assert 1 <= test_fold <= 5, f"Invalid test_fold: {test_fold}"
         experiment = os.path.join(experiment_root, f'{test_fold}')
 
         test_loader = torch.utils.data.DataLoader(ESC50(subset="test", test_folds={test_fold},
@@ -63,7 +56,7 @@ if __name__ == "__main__":
                                                         root=data_path, download=True),
                                                   batch_size=config.batch_size,
                                                   shuffle=False,
-                                                  num_workers=0,  # config.num_workers,
+                                                  num_workers=config.num_workers,
                                                   drop_last=False,
                                                   )
         # DEBUG: check if testdata is deterministic (multiple testset read, time consuming)
@@ -85,7 +78,7 @@ if __name__ == "__main__":
                                           criterion=criterion, device=device)
             probs[model_file_name].update(p)
             scores[test_fold][model_file_name] = pd.Series(dict(TestAcc=test_acc, TestLoss=np.mean(test_loss)))
-            print(scores[test_fold][model_file_name])
+            print(scores[test_fold][model_file_name].to_string())
         scores[test_fold] = pd.concat(scores[test_fold])
         scores[test_fold].to_csv(os.path.join(experiment, 'test_scores.csv'),
                                  index_label=['checkpoint', 'metric'], header=['value'])

@@ -191,3 +191,19 @@ def calc_global_stats(data_path):
         a = torch.concatenate([v[1] for v in tqdm(train_set)])
         res.append((a.mean(), a.std()))
     return np.array(res)
+
+
+def get_global_stats(data_path):
+    """Return global_stats array for current config.
+    Uses hardcoded defaults if params match, otherwise computes."""
+    if config.n_mels == 128 and config.hop_length == 512:
+        stats = np.array([[-54.364834, 20.853344],
+                          [-54.279022, 20.847532],
+                          [-54.18343, 20.80387],
+                          [-54.223698, 20.798292],
+                          [-54.200905, 20.949806]])
+        print("Using hardcoded global stats (n_mels=128, hop_length=512)")
+    else:
+        print("Computing global stats for custom params... (slow)")
+        stats = calc_global_stats(data_path)
+    return stats
