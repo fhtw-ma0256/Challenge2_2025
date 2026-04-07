@@ -12,16 +12,18 @@ from functools import partial
 
 from models.model_classifier import AudioMLP
 from models.utils import EarlyStopping, Tee
-from dataset.dataset_ESC50 import ESC50
+from dataset.dataset_ESC50 import ESC50, calc_global_stats
 import config
 
-
-# mean and std of train data for every fold
-global_stats = np.array([[-54.364834, 20.853344],
-                         [-54.279022, 20.847532],
-                         [-54.18343, 20.80387],
-                         [-54.223698, 20.798292],
-                         [-54.200905, 20.949806]])
+# seed for reproducibility
+import random
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 # evaluate model on different testing data 'dataloader'
 def test(model, dataloader, criterion, device):
@@ -134,6 +136,22 @@ def make_model():
     return model
 
 
+def get_global_stats(data_path):
+    """Return global_stats array for current config.
+    Uses hardcoded defaults if params match, otherwise computes."""
+    if config.n_mels == 128 and config.hop_length == 512:
+        stats = np.array([[-54.364834, 20.853344],
+                          [-54.279022, 20.847532],
+                          [-54.18343, 20.80387],
+                          [-54.223698, 20.798292],
+                          [-54.200905, 20.949806]])
+        print("Using hardcoded global stats (n_mels=128, hop_length=512)")
+    else:
+        print("Computing global stats for custom params... (slow)")
+        stats = calc_global_stats(data_path)
+    return stats
+
+
 if __name__ == "__main__":
     data_path = config.esc50_path
     use_cuda = torch.cuda.is_available()
@@ -146,12 +164,10 @@ if __name__ == "__main__":
     experiment_root = os.path.join(runs_path, str(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')))
     os.makedirs(experiment_root, exist_ok=True)
 
+    # Load normalization stats (auto-switches between hardcoded and computed)
+    global_stats = get_global_stats(data_path)
     # for all folds
     scores = {}
-    # expensive!
-    #global_stats = get_global_stats(data_path)
-    # for spectrograms
-    print("WARNING: Using hardcoded global mean and std. Depends on feature settings!")
     for test_fold in config.test_folds:
         experiment = os.path.join(experiment_root, f'{test_fold}')
         if not os.path.exists(experiment):

@@ -36,9 +36,9 @@ prefetch_factor = None#8
 num_workers = 2
 num_workers = 0
 # for local Windows or Linux machine
-# num_workers = 6#16
+num_workers = 6#16
 persistent_workers = True
-persistent_workers = False
+#persistent_workers = False
 epochs = 200
 #epochs = 1
 # early stopping after epochs with no improvement

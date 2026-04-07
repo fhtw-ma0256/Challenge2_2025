@@ -184,7 +184,7 @@ class ESC50(data.Dataset):
         return file_name, feat, class_id
 
 
-def get_global_stats(data_path):
+def calc_global_stats(data_path):
     res = []
     for i in range(1, 6):
         train_set = ESC50(subset="train", test_folds={i}, root=data_path, download=True)
