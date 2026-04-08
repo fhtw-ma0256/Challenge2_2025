@@ -11,6 +11,8 @@ import librosa
 
 import config
 from . import transforms
+from .splits_ESC50 import get_esc50_splits  # Fixed splits – DO NOT REMOVE
+
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -53,77 +55,55 @@ def download_progress(current, total, width=80):
 class ESC50(data.Dataset):
 
     def __init__(self, root, test_folds=frozenset((1,)), subset="train", global_mean_std=(0.0, 1.0), download=False):
-        audio = 'ESC-50-master/audio'
-        root = os.path.normpath(root)
-        audio = os.path.join(root, audio)
-        if subset in {"train", "test", "val"}:
-            self.subset = subset
-        else:
-            raise ValueError
-        # path = path.split(os.sep)
-        if not os.path.exists(audio) and download:
-            os.makedirs(root, exist_ok=True)
-            file_name = 'master.zip'
-            file_path = os.path.join(root, file_name)
-            url = f'https://github.com/karoldvl/ESC-50/archive/{file_name}'
-            download_extract_zip(url, file_path)
+        """
+        Args:
+            root: Path to dataset root
+            test_folds: Set containing the test fold (e.g., {1})
+            subset: "train", "val", or "test"
+            global_mean_std: (mean, std) for normalization
+            download: Auto-download if missing
+        """
+        # === FIXED SPLIT LOGIC – DO NOT MODIFY ===
+        audio_path = os.path.join(root, 'ESC-50-master/audio')
+        self.root = audio_path
+        if not os.path.exists(audio_path) and download:
+            self._download_dataset(root)
 
-        self.root = audio
-        # getting name of all files inside the all the train_folds
-        temp = sorted(os.listdir(self.root))
-        folds = {int(v.split('-')[0]) for v in temp}
+        # Extract single test fold (assumes set with one element)
+        assert len(test_folds) == 1
         self.test_folds = set(test_folds)
-        self.train_folds = folds - test_folds
-        train_files = [f for f in temp if int(f.split('-')[0]) in self.train_folds]
-        test_files = [f for f in temp if int(f.split('-')[0]) in test_folds]
-        # sanity check
-        assert set(temp) == (set(train_files) | set(test_files))
-        if subset == "test":
-            self.file_names = test_files
-        else:
-            if config.val_size:
-                train_files, val_files = train_test_split(train_files, test_size=config.val_size, random_state=0)
-            if subset == "train":
-                self.file_names = train_files
-            else:
-                self.file_names = val_files
-        # the number of samples in the wave (=length) required for spectrogram
-        out_len = int(((config.sr * 5) // config.hop_length) * config.hop_length)
-        train = self.subset == "train"
-        if train:
-            # augment training data with transformations that include randomness
-            # transforms can be applied on wave and spectral representation
-            self.wave_transforms = transforms.Compose(
-                torch.Tensor,
-                #transforms.RandomScale(max_scale=1.25),
-                transforms.RandomPadding(out_len=out_len),
-                transforms.RandomCrop(out_len=out_len)
-            )
+        self.train_folds = set(range(1, 6)) - test_folds
+        self.subset = subset
+        self.file_names = get_esc50_splits(root, next(iter(test_folds)), subset, config.val_size)
+        # === STUDENTS CAN MODIFY BELOW THIS LINE ===
 
-            self.spec_transforms = transforms.Compose(
-                # to Tensor and prepend singleton dim
-                #lambda x: torch.Tensor(x).unsqueeze(0),
-                # lambda non-pickleable, problem on windows, replace with partial function
-                torch.Tensor,
-                partial(torch.unsqueeze, dim=0),
-            )
-
-        else:
-            # for testing transforms are applied deterministically to support reproducible scores
-            self.wave_transforms = transforms.Compose(
-                torch.Tensor,
-                # disable randomness
-                transforms.RandomPadding(out_len=out_len, train=False),
-                transforms.RandomCrop(out_len=out_len, train=False)
-            )
-
-            self.spec_transforms = transforms.Compose(
-                torch.Tensor,
-                partial(torch.unsqueeze, dim=0),
-            )
         self.global_mean = global_mean_std[0]
         self.global_std = global_mean_std[1]
-        self.n_mfcc = config.n_mfcc if hasattr(config, "n_mfcc") else None
+
+        # Feature parameters
+        self.n_mfcc = getattr(config, 'n_mfcc', None)
+
+        # Wave transforms (augmentation)
+        out_len = int(((config.sr * 5) // config.hop_length) * config.hop_length)
+        train_mode = (subset == "train")
+
+        self.wave_transforms = transforms.Compose(
+            torch.Tensor,
+            transforms.RandomPadding(out_len=out_len, train=train_mode),
+            transforms.RandomCrop(out_len=out_len, train=train_mode)
+        )
+
+        self.spec_transforms = transforms.Compose(
+            torch.Tensor,
+            partial(torch.unsqueeze, dim=0),
+        )
+
+    def _download_dataset(self, root):
+        """Download ESC-50 if not present (students can modify if needed)."""
+        os.makedirs(root, exist_ok=True)
+        file_path = os.path.join(root, 'master.zip')
+        url = 'https://github.com/karoldvl/ESC-50/archive/master.zip'
+        download_extract_zip(url, file_path)
 
     def __len__(self):
         return len(self.file_names)

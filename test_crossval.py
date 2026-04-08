@@ -21,22 +21,22 @@ if __name__ == "__main__":
     use_cuda = torch.cuda.is_available()
     device = torch.device(f"cuda:{config.device_id}" if use_cuda else "cpu")
 
-    # Load normalization stats (auto-switches between hardcoded and computed)
-    global_stats = get_global_stats(data_path)
-    # debugging only
-    check_data_reproducibility = False
-
     pd.options.display.float_format = ('{:,' + config.float_fmt + '}').format
     experiment_root = args.cv_path
-    if not os.path.isdir(experiment_root):
-        print('download model params')
+    if not os.path.isdir(experiment_root) and experiment_root == 'results/sample-run':
+        print('download default model params')
+        os.makedirs('results', exist_ok=True)
         download_extract_zip(
-            #url='https://cloud.technikum-wien.at/s/9HTN27EADZXGJ72/download/sample-run.zip',
             url='https://cloud.technikum-wien.at/s/PiHsFtnB69cqxPE/download/sample-run.zip',
             file_path=experiment_root + '.zip',
         )
 
-    # instantiate model
+     # Load normalization stats (auto-switches between hardcoded and computed)
+    global_stats = get_global_stats(data_path)
+    # debugging only
+    check_data_reproducibility = False
+
+   # instantiate model
     print('*****')
     model = make_model()
     model = model.to(device)
